@@ -11,6 +11,8 @@ import os
 os.environ['XLA_FLAGS'] = '--xla_gpu_enable_async_collective_permute=true --xla_gpu_enable_latency_hiding_scheduler=true --xla_gpu_enable_highest_priority_async_stream=true'
 #os.environ['XLA_FLAGS'] += ' --xla_dump_hlo_as_text --xla_dump_hlo_as_html --xla_dump_to=/results/hlo/rs_matmul_dp8tp1'
 
+from .barrier import _optimization_barrier
+
 with_sharding_constraint = nn_partitioning.with_sharding_constraint
 
 def rs_matmul(lhs, rhs):
@@ -24,6 +26,7 @@ def rs_matmul(lhs, rhs):
             perm=[(j, (j + 1) % axis_size) for j in range(axis_size)])
         lhs_idx = (axis_idx - i - 1) % axis_size
         update = lhs[:, lhs_idx, ...] @ rhs
+        update = _optimization_barrier(update)
         out = out + update
         return out
 
